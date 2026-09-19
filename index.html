@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+<!-- This site is hosted on Netlify. Anyone can build and deploy a site
+     like this one for free: https://netlify.new/?utm_campaign=ai-legible&utm_source=comment&utm_medium=referral&utm_id=f076b85c-4fa3-4861-9306-ec1d410386b7
+     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
+<meta name="hosting-provider" content="Netlify">
+<meta name="netlify-deploy" content="https://netlify.new/?utm_campaign=ai-legible&amp;utm_source=meta&amp;utm_medium=referral&amp;utm_id=f076b85c-4fa3-4861-9306-ec1d410386b7">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NeuroFocus — Cognitive Practice Prototype</title>
+    
+    <!-- 1. 引入 Tailwind CSS (样式库) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. 引入 React 和 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- 3. 引入 Babel (用于解析 JSX) -->
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* 额外的动画样式 */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        .animate-fade-in-up { animation: fadeInUp 0.5s ease-out; }
+        /* 防止手机端双击缩放 */
+        body { touch-action: manipulation; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- 图标组件 (内嵌 SVG，无需外部加载，确保国内访问稳定) ---
+        const Icons = {
+            Brain: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-4A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-4A2.5 2.5 0 0 0 14.5 2Z"/></svg>,
+            Eye: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>,
+            Zap: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+            Layers: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>,
+            Briefcase: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
+            Info: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>,
+            TrendingUp: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>,
+            Star: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+            Utensils: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>,
+            Timer: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></svg>,
+            Coffee: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>,
+            X: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
+        };
+
+        const { useState, useEffect, useRef } = React;
+
+        // --- 使用提示（不构成医学或能力评估） ---
+        const FACTS = [
+            "练习提示：结果只反映本次游戏表现，不代表整体认知能力。",
+            "练习提示：在安静环境中进行，便于比较自己的不同轮次。",
+            "练习提示：疲劳、设备与网络状态都可能影响反应时间。",
+            "练习提示：短暂休息后再尝试，有助于保持专注。",
+            "重要说明：本产品是互动练习原型，不构成医学建议或诊断。"
+        ];
+
+        // --- 全局组件 ---
+        const FactTicker = () => {
+            const [index, setIndex] = useState(0);
+            useEffect(() => {
+                const timer = setInterval(() => setIndex(prev => (prev + 1) % FACTS.length), 5000); 
+                return () => clearInterval(timer);
+            }, []);
+            return (
+                <div className="fixed bottom-0 w-full bg-indigo-900 text-indigo-100 text-xs md:text-sm py-2 px-4 text-center overflow-hidden z-20">
+                    <p className="animate-fade-in">{FACTS[index]}</p>
+                </div>
+            );
+        };
+
+        const Button = ({ onClick, children, className = "", variant = "primary", disabled = false }) => {
+            const baseStyle = "px-6 py-3 rounded-xl font-bold transition-all transform active:scale-95 shadow-md flex items-center justify-center gap-2";
+            const variants = {
+                primary: "bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300",
+                secondary: "bg-gray-100 text-gray-800 hover:bg-gray-200",
+                outline: "border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50",
+                danger: "bg-red-500 text-white hover:bg-red-600",
+            };
+            return <button onClick={onClick} disabled={disabled} className={`${baseStyle} ${variants[variant]} ${className}`}>{children}</button>;
+        };
+
+        const QuitButton = ({ onExit }) => (
+            <button onClick={onExit} className="absolute top-4 right-4 p-2 bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-500 rounded-full transition-colors z-50" title="中断训练并返回">
+                <Icons.X size={24} />
+            </button>
+        );
+
+        const TimeBar = ({ duration, onTimeout, isRunning }) => {
+            const [width, setWidth] = useState(100);
+            useEffect(() => {
+                if (!isRunning) return;
+                setWidth(100);
+                const start = Date.now();
+                const timer = setInterval(() => {
+                    const elapsed = Date.now() - start;
+                    const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
+                    setWidth(remaining);
+                    if (remaining === 0) {
+                        clearInterval(timer);
+                        onTimeout();
+                    }
+                }, 16);
+                return () => clearInterval(timer);
+            }, [duration, isRunning, onTimeout]);
+            return (
+                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mt-4">
+                    <div className={`h-full transition-all duration-75 ease-linear ${width < 30 ? 'bg-red-500' : 'bg-indigo-500'}`} style={{ width: `${width}%` }} />
+                </div>
+            );
+        };
+
+        // --- 评分系统 ---
+        const getRatingInfo = (score, maxScore = 100) => {
+            const ratio = score / maxScore;
+            if (ratio >= 1.0) return { label: 'S (神级)', color: 'text-purple-600', stars: 5, next: null, msg: "你的大脑反应速度已达到人类巅峰！保持住！" };
+            if (ratio >= 0.85) return { label: 'A (大师)', color: 'text-green-600', stars: 4, next: maxScore, msg: "非常出色！距离神级只有一步之遥，继续挑战极限！" };
+            if (ratio >= 0.70) return { label: 'B (优秀)', color: 'text-blue-600', stars: 3, next: Math.floor(maxScore * 0.85), msg: "表现很好！如果能再快一点点，就能突破到大师级。" };
+            if (ratio >= 0.50) return { label: 'C (良好)', color: 'text-yellow-600', stars: 2, next: Math.floor(maxScore * 0.70), msg: "基础不错。别气馁，大脑像肌肉一样，坚持训练就能重塑！" };
+            return { label: 'D (入门)', color: 'text-gray-500', stars: 1, next: Math.floor(maxScore * 0.50), msg: "万事开头难。这是一个好的开始，每天坚持，你会看到惊人的变化。" };
+        };
+
+        // --- 结果卡片 ---
+        const ResultCard = ({ score, maxScore = 100, accuracy, detail, benchmarks, onRetry, onHome, difficulty }) => {
+            // 本地存储简单实现
+            const [highScore, setHighScore] = useState(0);
+            const [isNewRecord, setIsNewRecord] = useState(false);
+            const rating = getRatingInfo(score, maxScore);
+
+            useEffect(() => {
+                // 简单的 LocalStorage key 生成
+                const key = `nf_score_${difficulty}_${Math.random()}`; // 简化 Key 逻辑，实际应根据 gameId
+                // 在单文件 Demo 中，我们简化存储逻辑
+            }, []);
+
+            return (
+                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-xl max-w-lg w-full text-center animate-fade-in border-t-4 border-indigo-500 mb-12 relative">
+                    <div className="mb-2 flex justify-center">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <Icons.Star key={i} className={`w-6 h-6 ${i < rating.stars ? 'text-yellow-400 fill-current' : 'text-gray-200'}`} />
+                        ))}
+                    </div>
+                    <h2 className={`text-3xl font-extrabold mb-2 ${rating.color}`}>{rating.label}</h2>
+                    <p className="text-gray-600 text-sm mb-6 bg-indigo-50 p-3 rounded-lg italic">"{rating.msg}"</p>
+                    
+                    {rating.next && (
+                        <div className="mb-6 px-4">
+                            <div className="flex justify-between text-xs text-gray-400 mb-1"><span>当前: {score}</span><span>下一级: {rating.next}</span></div>
+                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${Math.min(100, (score / rating.next) * 100)}%` }} />
+                            </div>
+                            <div className="text-xs text-indigo-600 font-bold mt-1">再提升 {rating.next - score} 分即可晋级！</div>
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-4 my-6">
+                        <div className="bg-white border-2 border-indigo-50 p-3 rounded-xl shadow-sm">
+                            <div className="text-xs text-gray-400 font-bold uppercase">成绩</div>
+                            <div className="text-3xl font-black text-gray-800 mt-1">{accuracy}</div>
+                        </div>
+                        <div className="bg-white border-2 border-gray-50 p-3 rounded-xl shadow-sm flex flex-col justify-center">
+                            <div className="text-xs text-gray-400 font-bold uppercase">分析</div>
+                            <div className="text-sm text-gray-600 mt-1 leading-tight">{detail}</div>
+                        </div>
+                    </div>
+                    
+                    <div className="mt-6 bg-gray-50 p-4 rounded-xl border border-gray-200 text-left text-sm w-full animate-fade-in">
+                        <div className="font-bold text-gray-700 mb-2 flex items-center gap-2">
+                            <Icons.Info size={16} className="text-indigo-500" /> {difficulty === 'hard' ? '大师级标准' : difficulty === 'medium' ? '进阶标准' : '入门标准'}
+                        </div>
+                        <div className="space-y-1">
+                            {benchmarks.map((row, i) => (
+                                <div key={i} className="flex justify-between border-b border-gray-100 last:border-0 py-1">
+                                    <span className="text-gray-500">{row.label}</span>
+                                    <span className="font-mono font-medium text-gray-800">{row.value}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4 mt-8">
+                        <Button variant="secondary" onClick={onHome} className="flex-1">主页</Button>
+                        <Button onClick={onRetry} className="flex-1">再试一次</Button>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 1. Schulte Game ---
+        const SchulteGame = ({ difficulty, onComplete, onExit }) => {
+            const [gridSize, setGridSize] = useState(3);
+            const [mode, setMode] = useState('number');
+            const [items, setItems] = useState([]);
+            const [nextExpectedIndex, setNextExpectedIndex] = useState(0);
+            const [currentTime, setCurrentTime] = useState(0);
+            const [gameState, setGameState] = useState('intro');
+            const timerRef = useRef(null);
+
+            const chineseNums = '一二三四五六七八九十十一十二十三十四十五十六十七十八十九二十二十一二十二二十三二十四二十五'.split(/(?<=.)/);
+            const cnList = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十','廿一','廿二','廿三','廿四','廿五'];
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXY'.split('');
+            const colors = ['#1f2937', '#dc2626', '#16a34a', '#2563eb', '#d97706'];
+
+            useEffect(() => {
+                if (difficulty === 'easy') setGridSize(3);
+                if (difficulty === 'medium') setGridSize(4);
+                if (difficulty === 'hard') setGridSize(5);
+            }, [difficulty]);
+
+            const getDynamicBenchmarks = () => {
+                let s_time = 25, a_time = 35, b_time = 50;
+                if (difficulty === 'easy') { s_time = 3; a_time = 5; b_time = 8; } 
+                else if (difficulty === 'medium') { s_time = 8; a_time = 12; b_time = 18; } 
+                else { s_time = 15; a_time = 25; b_time = 40; }
+                if (mode !== 'number') { s_time = Math.round(s_time * 1.2); a_time = Math.round(a_time * 1.2); b_time = Math.round(b_time * 1.2); }
+                return [
+                    { label: "S (神级)", value: `< ${s_time}s` },
+                    { label: "A (大师)", value: `${s_time}-${a_time}s` },
+                    { label: "B (优秀)", value: `${a_time}-${b_time}s` },
+                ];
+            };
+
+            const startGame = () => {
+                const total = gridSize * gridSize;
+                let rawItems = [];
+                if (mode === 'number') rawItems = Array.from({ length: total }, (_, i) => i + 1);
+                else if (mode === 'letter') rawItems = letters.slice(0, total);
+                else if (mode === 'chinese') rawItems = cnList.slice(0, total);
+
+                const shuffled = rawItems
+                    .map(val => ({ val, sort: Math.random() }))
+                    .sort((a, b) => a.sort - b.sort)
+                    .map(item => ({
+                        val: item.val,
+                        color: difficulty === 'hard' ? colors[Math.floor(Math.random() * colors.length)] : '#1f2937'
+                    }));
+
+                setItems(shuffled);
+                setNextExpectedIndex(0);
+                setCurrentTime(0);
+                setGameState('playing');
+                const start = Date.now();
+                timerRef.current = setInterval(() => setCurrentTime((Date.now() - start) / 1000), 100);
+            };
+
+            const handleItemClick = (val) => {
+                let expectedVal = '';
+                if (mode === 'number') expectedVal = nextExpectedIndex + 1;
+                else if (mode === 'letter') expectedVal = letters[nextExpectedIndex];
+                else if (mode === 'chinese') expectedVal = cnList[nextExpectedIndex];
+
+                if (val === expectedVal) {
+                    if (nextExpectedIndex + 1 === items.length) {
+                        clearInterval(timerRef.current);
+                        setGameState('finished');
+                    } else {
+                        setNextExpectedIndex(prev => prev + 1);
+                    }
+                }
+            };
+
+            const calculateScore = () => {
+                const benchmarks = getDynamicBenchmarks();
+                const s_limit = parseInt(benchmarks[0].value.match(/\d+/)?.[0] || "25");
+                const score = Math.round((s_limit / currentTime) * 100);
+                return Math.min(120, score);
+            };
+
+            if (gameState === 'intro') return (
+                <div className="text-center max-w-lg mb-12 relative">
+                    <div className="w-16 h-16 text-indigo-500 mx-auto mb-4"><Icons.Eye size={64}/></div>
+                    <h2 className="text-2xl font-bold mb-2">舒尔特方格</h2>
+                    <p className="text-gray-500 mb-6 text-sm">
+                        当前难度: <span className="font-bold text-indigo-600 uppercase">{difficulty}</span> ({gridSize}x{gridSize})
+                        {difficulty === 'hard' && <span className="text-red-500 text-xs ml-2">⚠️ 颜色干扰已开启</span>}
+                    </p>
+                    <div className="flex gap-2 justify-center mb-8">
+                        {['number', 'letter', 'chinese'].map(m => (
+                            <button key={m} onClick={() => setMode(m)} className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all ${mode === m ? 'bg-indigo-100 border-indigo-500 text-indigo-700' : 'bg-white border-gray-200 text-gray-500'}`}>
+                                {m === 'number' ? '数字' : m === 'letter' ? '字母' : '汉字'}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex gap-4 justify-center">
+                        <Button variant="secondary" onClick={onExit}>退出</Button>
+                        <Button onClick={startGame}>开始</Button>
+                    </div>
+                </div>
+            );
+
+            if (gameState === 'finished') return (
+                <ResultCard score={calculateScore()} accuracy={`${currentTime.toFixed(2)}s`} detail={`完成搜索。如果想达到S级，试着减少眼球移动，用余光覆盖更大范围。`} benchmarks={getDynamicBenchmarks()} onRetry={() => setGameState('intro')} onHome={onExit} difficulty={difficulty} />
+            );
+
+            return (
+                <div className="flex flex-col items-center w-full max-w-md mb-12 relative">
+                    <QuitButton onExit={onExit} />
+                    <div className="flex justify-between w-full mb-4 items-center px-4">
+                        <div className="text-lg font-bold text-gray-600">
+                        Next: <span className="text-indigo-600 text-2xl ml-2">{mode === 'number' ? nextExpectedIndex + 1 : mode === 'letter' ? letters[nextExpectedIndex] : cnList[nextExpectedIndex]}</span>
+                        </div>
+                        <div className="text-xl font-mono text-gray-500">{currentTime.toFixed(1)}s</div>
+                    </div>
+                    <div className="grid gap-2 w-full bg-gray-200 p-2 rounded-xl select-none" style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}>
+                        {items.map((item, idx) => (
+                            <button key={idx} onMouseDown={() => handleItemClick(item.val)} style={{ color: item.color }} className={`aspect-square flex items-center justify-center font-bold rounded-lg shadow-sm bg-white hover:bg-indigo-50 active:bg-indigo-200 ${gridSize === 5 ? 'text-xl' : 'text-3xl'}`}>
+                                <span className={(mode === 'number' && typeof item.val === 'number' && item.val <= nextExpectedIndex) || (mode !== 'number' && ((mode==='letter'?letters:cnList).indexOf(item.val) < nextExpectedIndex)) ? 'opacity-20 blur-[1px]' : 'opacity-100'}>{item.val}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 2. Stroop Game ---
+        const StroopGame = ({ difficulty, onComplete, onExit }) => {
+            const [subMode, setSubMode] = useState('standard');
+            const [readingWords, setReadingWords] = useState([]);
+            const [readingState, setReadingState] = useState('idle');
+            const [readingTime, setReadingTime] = useState(0);
+            const readingTimer = useRef(null);
+
+            const colors = [{ name: '红', hex: '#EF4444' }, { name: '蓝', hex: '#3B82F6' }, { name: '绿', hex: '#22C55E' }, { name: '黄', hex: '#EAB308' }];
+            const [currentWord, setCurrentWord] = useState(colors[0]);
+            const [inkColor, setInkColor] = useState(colors[0]);
+            const [correctCount, setCorrectCount] = useState(0);
+            const [round, setRound] = useState(0);
+            const [gameState, setGameState] = useState('intro');
+            const [feedback, setFeedback] = useState('none');
+            const [roundKey, setRoundKey] = useState(0);
+            const totalRounds = 20;
+
+            const getTimeLimit = () => {
+                if (difficulty === 'easy') return 99999;
+                if (difficulty === 'medium') return 2000;
+                if (difficulty === 'hard') return 1000;
+                return 2000;
+            };
+
+            const generateRound = () => {
+                const word = colors[Math.floor(Math.random() * colors.length)];
+                const isCongruent = Math.random() > (difficulty === 'hard' ? 0.3 : 0.7);
+                const ink = isCongruent ? word : colors[Math.floor(Math.random() * colors.length)];
+                setCurrentWord(word);
+                setInkColor(ink);
+                setFeedback('none');
+                setRoundKey(prev => prev + 1);
+            };
+
+            const handleTimeout = () => {
+                if (gameState !== 'playing') return;
+                setFeedback('wrong');
+                setTimeout(nextRound, 150);
+            };
+
+            const handleAnswer = (hex) => {
+                if (gameState !== 'playing' || feedback !== 'none') return;
+                if (hex === inkColor.hex) {
+                    setCorrectCount(c => c + 1);
+                    setFeedback('correct');
+                } else {
+                    setFeedback('wrong');
+                }
+                setTimeout(nextRound, 150);
+            };
+
+            const nextRound = () => {
+                if (round >= totalRounds) setGameState('finished');
+                else { setRound(r => r + 1); generateRound(); }
+            };
+
+            const initReadingMode = () => {
+                const newWords = Array.from({ length: 24 }, () => {
+                    const w = colors[Math.floor(Math.random() * colors.length)];
+                    const c = colors[Math.floor(Math.random() * colors.length)];
+                    return { text: w.name, color: c.hex };
+                });
+                setReadingWords(newWords);
+                setReadingState('idle');
+                setReadingTime(0);
+                setGameState('playing');
+            };
+
+            const toggleReadingTimer = () => {
+                if (readingState === 'idle') {
+                    setReadingState('running');
+                    setReadingTime(0);
+                    const start = Date.now();
+                    readingTimer.current = setInterval(() => setReadingTime((Date.now() - start) / 1000), 100);
+                } else if (readingState === 'running') {
+                    clearInterval(readingTimer.current);
+                    setReadingState('done');
+                    setGameState('finished');
+                }
+            };
+
+            if (gameState === 'intro') return (
+                <div className="text-center max-w-lg mb-12 relative">
+                    <div className="w-16 h-16 text-yellow-500 mx-auto mb-4"><Icons.Zap size={64}/></div>
+                    <h2 className="text-2xl font-bold mb-2">Stroop 抑制训练</h2>
+                    <div className="mb-6">
+                        <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">{difficulty} 难度</span>
+                        {difficulty !== 'easy' && <p className="text-red-500 text-xs mt-2 font-bold">⚠️ 限时: {getTimeLimit()/1000}秒/题</p>}
+                    </div>
+                    <div className="flex justify-center gap-4 mb-6">
+                        <button onClick={() => setSubMode('standard')} className={`p-4 border rounded-xl flex flex-col items-center gap-2 w-32 transition-all ${subMode === 'standard' ? 'border-yellow-500 bg-yellow-50 text-yellow-700 shadow-md' : 'border-gray-200 text-gray-400'}`}>
+                            <Icons.Zap size={20} /><span className="font-bold">标准挑战</span>
+                        </button>
+                        <button onClick={() => setSubMode('reading')} className={`p-4 border rounded-xl flex flex-col items-center gap-2 w-32 transition-all ${subMode === 'reading' ? 'border-yellow-500 bg-yellow-50 text-yellow-700 shadow-md' : 'border-gray-200 text-gray-400'}`}>
+                            <Icons.Timer size={20} /><span className="font-bold">朗读计时</span>
+                        </button>
+                    </div>
+                    <div className="flex gap-4 justify-center">
+                        <Button variant="secondary" onClick={onExit}>退出</Button>
+                        <Button onClick={() => { 
+                            if (subMode === 'standard') { setCorrectCount(0); setRound(1); generateRound(); setGameState('playing'); }
+                            else { initReadingMode(); }
+                        }}>开始</Button>
+                    </div>
+                </div>
+            );
+
+            if (gameState === 'finished' && subMode === 'reading') {
+                const score = Math.min(100, Math.round((15 / readingTime) * 90));
+                return (
+                    <ResultCard score={score} accuracy={`${readingTime.toFixed(2)}s`} detail={`阅读完成。语速是衡量认知流利度的重要指标。`} benchmarks={[{label:"S级", value:"<12s"}, {label:"A级", value:"12-18s"}, {label:"B级", value:"18-25s"}]} onRetry={initReadingMode} onHome={onExit} difficulty={difficulty} />
+                );
+            }
+
+            if (gameState === 'finished') return (
+                <ResultCard score={Math.round((correctCount/totalRounds)*100)} accuracy={`${Math.round((correctCount/totalRounds)*100)}%`} detail={`在 ${difficulty === 'hard' ? '极速1.0秒' : difficulty === 'medium' ? '限时2.0秒' : '无限制'} 模式下的准确率。`} benchmarks={[{label:"S级", value:"100%"}, {label:"A级", value:">95%"}, {label:"B级", value:">85%"}]} onRetry={() => { setCorrectCount(0); setRound(1); generateRound(); setGameState('playing'); }} onHome={onExit} difficulty={difficulty} />
+            );
+
+            if (subMode === 'reading' && gameState === 'playing') return (
+                <div className="flex flex-col items-center w-full mb-12 relative">
+                    <QuitButton onExit={onExit} />
+                    <div className="grid grid-cols-4 gap-x-4 gap-y-6 mb-8 w-full max-w-md bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        {readingWords.map((w, i) => <div key={i} style={{ color: w.color }} className="text-xl font-black text-center select-none">{w.text}</div>)}
+                    </div>
+                    <div className="text-center w-full">
+                        <div className="text-5xl font-mono text-gray-800 mb-6 font-bold tracking-wider">{readingTime.toFixed(1)}s</div>
+                        <Button onClick={toggleReadingTimer} variant={readingState === 'running' ? "danger" : "primary"}>{readingState === 'idle' ? "开始计时" : "读完了！停止"}</Button>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="flex flex-col items-center w-full max-w-md mb-12 relative">
+                    <QuitButton onExit={onExit} />
+                    <div className="text-gray-400 font-bold mb-4 flex justify-between w-full px-4">
+                        <span>Round {round}/{totalRounds}</span>
+                        {feedback === 'wrong' && <span className="text-red-500">Miss!</span>}
+                    </div>
+                    
+                    <div className="h-40 flex items-center justify-center mb-4 bg-white w-full rounded-2xl shadow-inner border border-gray-100 relative overflow-hidden">
+                        <span style={{ color: inkColor.hex }} className="text-8xl font-black relative z-10">{currentWord.name}</span>
+                    </div>
+
+                    {difficulty !== 'easy' && feedback === 'none' && (
+                        <div className="w-full mb-8">
+                            <TimeBar key={roundKey} duration={getTimeLimit()} onTimeout={handleTimeout} isRunning={gameState === 'playing'} />
+                        </div>
+                    )}
+                    {difficulty === 'easy' && <div className="mb-8 h-2"/>}
+
+                    <div className="grid grid-cols-2 gap-4 w-full">
+                        {colors.map((c) => (
+                            <button key={c.name} onClick={() => handleAnswer(c.hex)} style={{ backgroundColor: c.hex }} className="h-20 rounded-xl shadow-md active:scale-95 transition-all text-white font-bold opacity-90 hover:opacity-100" />
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 3. Sequence Game ---
+        const SequenceGame = ({ difficulty, onComplete, onExit }) => {
+            const [subMode, setSubMode] = useState('classic');
+            const [sequence, setSequence] = useState([]);
+            const [userSequence, setUserSequence] = useState([]);
+            const [phase, setPhase] = useState('watch');
+            const [highlightedIndex, setHighlightedIndex] = useState(null);
+            const [level, setLevel] = useState(1);
+            const [gameState, setGameState] = useState('intro');
+            const gridSize = difficulty === 'hard' ? 4 : 3;
+            const totalCells = gridSize * gridSize;
+            const objectList = [
+                { icon: '🚗', name: '汽车' }, { icon: '🔑', name: '钥匙' }, { icon: '⏰', name: '闹钟' }, { icon: '📱', name: '手机' },
+                { icon: '🏀', name: '篮球' }, { icon: '🐱', name: '猫咪' }, { icon: '🌵', name: '仙人掌' }, { icon: '💊', name: '药丸' },
+                { icon: '🎸', name: '吉他' }, { icon: '🚀', name: '火箭' }, { icon: '👓', name: '眼镜' }, { icon: '📷', name: '相机' },
+                { icon: '🍔', name: '汉堡' }, { icon: '☂️', name: '雨伞' }, { icon: '🚲', name: '单车' }, { icon: '🎁', name: '礼物' }
+            ];
+
+            const playSequence = async (seq) => {
+                setPhase('watch'); setUserSequence([]);
+                await new Promise(r => setTimeout(r, 600));
+                for (let i = 0; i < seq.length; i++) {
+                    setHighlightedIndex(seq[i]); await new Promise(r => setTimeout(r, 800)); setHighlightedIndex(null); await new Promise(r => setTimeout(r, 200));
+                }
+                setPhase('input');
+            };
+
+            const startLevel = (lvl) => {
+                const length = lvl + 2; const newSeq = Array.from({ length }, () => Math.floor(Math.random() * totalCells));
+                setSequence(newSeq); playSequence(newSeq);
+            };
+
+            const handleCellClick = (index) => {
+                if (phase !== 'input') return;
+                const newUserSeq = [...userSequence, index]; setUserSequence(newUserSeq);
+                if (newUserSeq[newUserSeq.length - 1] !== sequence[newUserSeq.length - 1]) setGameState('finished');
+                else if (newUserSeq.length === sequence.length) setTimeout(() => { setLevel(l => l + 1); startLevel(level + 1); }, 500);
+            };
+
+            const getBenchmarks = () => {
+                let s_len = difficulty === 'hard' ? 10 : difficulty === 'easy' ? 8 : 9;
+                return [{ label: "S级", value: `≥ ${s_len}` }, { label: "A级", value: `${s_len-1}` }, { label: "B级", value: `5-7` }];
+            };
+
+            const getScore = () => {
+                const items = (level - 1) + 2; const s_len = difficulty === 'hard' ? 10 : 9;
+                return Math.min(100, Math.round((items / s_len) * 100));
+            };
+
+            if (gameState === 'intro') return (
+                <div className="text-center max-w-lg mb-12 relative">
+                    <div className="w-16 h-16 text-blue-500 mx-auto mb-4"><Icons.Layers size={64}/></div>
+                    <h2 className="text-2xl font-bold mb-2">工作记忆训练</h2>
+                    <div className="flex justify-center gap-4 mb-6">
+                        <button onClick={() => setSubMode('classic')} className={`p-4 border rounded-xl flex flex-col items-center gap-2 w-32 transition-all ${subMode === 'classic' ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md' : 'border-gray-200 text-gray-400'}`}><Icons.Layers size={20} /><span className="font-bold">经典方块</span></button>
+                        <button onClick={() => setSubMode('object')} className={`p-4 border rounded-xl flex flex-col items-center gap-2 w-32 transition-all ${subMode === 'object' ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md' : 'border-gray-200 text-gray-400'}`}><Icons.Coffee size={20} /><span className="font-bold">物品实物</span></button>
+                    </div>
+                    <div className="flex gap-4 justify-center">
+                        <Button variant="secondary" onClick={onExit}>退出</Button>
+                        <Button onClick={() => { setGameState('playing'); setLevel(1); startLevel(1); }}>开始</Button>
+                    </div>
+                </div>
+            );
+
+            if (gameState === 'finished') return (
+                <ResultCard score={getScore()} accuracy={`长度: ${(level - 1) + 2}`} detail={`工作记忆容量测试完成。`} benchmarks={getBenchmarks()} onRetry={() => { setGameState('intro'); }} onHome={onExit} difficulty={difficulty} />
+            );
+
+            return (
+                <div className="flex flex-col items-center mb-12 relative">
+                    <QuitButton onExit={onExit} />
+                    <div className="text-xl font-bold mb-6">Level {level} <span className="text-gray-400 text-sm">(长度: {level+2})</span></div>
+                    <div className="grid gap-3 p-4 rounded-xl bg-gray-100" style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}>
+                        {Array.from({ length: totalCells }).map((_, i) => (
+                            <div key={i} onClick={() => handleCellClick(i)} className={`w-20 h-20 rounded-xl flex flex-col items-center justify-center text-3xl transition-all duration-200 cursor-pointer shadow-sm border-2 ${highlightedIndex === i ? 'bg-blue-500 border-blue-300 scale-105 shadow-lg z-10' : 'bg-white border-gray-200'} ${phase === 'input' ? 'hover:bg-blue-50 active:bg-blue-100' : ''}`}>
+                                {subMode === 'object' ? (<><span className="text-2xl">{objectList[i % objectList.length].icon}</span><span className="text-[10px] text-gray-400 mt-1 font-bold">{objectList[i % objectList.length].name}</span></>) : (highlightedIndex === i && <div className="w-3 h-3 bg-white rounded-full opacity-50"/>)}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-4 text-gray-500 font-bold">{phase === 'watch' ? '👀 请仔细观察' : '🧠 请按顺序点击'}</div>
+                </div>
+            );
+        };
+
+        // --- 4. Logic Game ---
+        const LogicGame = ({ difficulty, onComplete, onExit }) => {
+            const [subMode, setSubMode] = useState('wcst');
+            const [score, setScore] = useState(0);
+            const [moves, setMoves] = useState(0);
+            const [gameState, setGameState] = useState('intro');
+            const [feedback, setFeedback] = useState('');
+            const [wcstRule, setWcstRule] = useState('');
+            const [wcstStreak, setWcstStreak] = useState(0);
+            const [targetCard, setTargetCard] = useState(null);
+            const [catItem, setCatItem] = useState(null);
+            const [moveKey, setMoveKey] = useState(0);
+
+            const categories = [{ id: 'food', label: '食物', icon: Icons.Utensils, items: ['🍔', '🍎', '🥕', '🍦', '🍕', '🍙'] }, { id: 'tool', label: '工具', icon: Icons.Briefcase, items: ['🔨', '🔧', '✂️', '📏', '📎', '🔦'] }, { id: 'animal', label: '动物', icon: Icons.Info, items: ['🐶', '🐱', '🐘', '🦁', '🐰', '🐼'] }];
+
+            const getTimeLimit = () => {
+                if (difficulty === 'easy') return 99999;
+                if (difficulty === 'medium') return 4000;
+                if (difficulty === 'hard') return 2000;
+                return 4000;
+            };
+
+            const initGame = () => {
+                setScore(0); setMoves(0); setFeedback('');
+                if (subMode === 'wcst') {
+                    setWcstRule(['shape', 'color', 'count'][Math.floor(Math.random()*3)]);
+                    setTargetCard(generateWcstCard());
+                } else {
+                    setCatItem(generateCatItem());
+                }
+                setMoveKey(0);
+                setGameState('playing');
+            };
+
+            const handleTimeout = () => {
+                if (gameState !== 'playing') return;
+                setFeedback('超时!');
+                setMoves(m => m + 1);
+                if (subMode === 'wcst') setTargetCard(generateWcstCard());
+                else setCatItem(generateCatItem());
+                setMoveKey(prev => prev + 1);
+                if (moves >= 19) setGameState('finished');
+            };
+
+            const generateWcstCard = () => ({ shape: ['circle','triangle','square','star'][Math.floor(Math.random()*4)], color: ['#EF4444','#3B82F6','#22C55E','#EAB308'][Math.floor(Math.random()*4)], count: [1,2,3,4][Math.floor(Math.random()*4)] });
+            const generateCatItem = () => { const cat = categories[Math.floor(Math.random() * categories.length)]; const item = cat.items[Math.floor(Math.random() * cat.items.length)]; return { categoryId: cat.id, char: item, label: cat.label }; };
+
+            const handleWcstMatch = (refIndex) => {
+                const refCards = [{ shape: 'circle', color: '#EF4444', count: 1 }, { shape: 'triangle', color: '#3B82F6', count: 2 }, { shape: 'square', color: '#22C55E', count: 3 }, { shape: 'star', color: '#EAB308', count: 4 }];
+                const ref = refCards[refIndex];
+                let isCorrect = false;
+                if (wcstRule === 'shape' && ref.shape === targetCard.shape) isCorrect = true;
+                if (wcstRule === 'color' && ref.color === targetCard.color) isCorrect = true;
+                if (wcstRule === 'count' && ref.count === targetCard.count) isCorrect = true;
+
+                if (isCorrect) {
+                    setScore(s => s + 10); setWcstStreak(s => s + 1); setFeedback('正确!');
+                    if (wcstStreak + 1 >= (difficulty === 'hard' ? 3 : 5)) {
+                        const rules = ['shape', 'color', 'count'].filter(r => r !== wcstRule);
+                        setWcstRule(rules[Math.floor(Math.random()*rules.length)]);
+                        setWcstStreak(0); setFeedback('规则改变!');
+                    }
+                } else { setFeedback('错误'); setWcstStreak(0); }
+                setMoves(m => m + 1); setTargetCard(generateWcstCard()); setMoveKey(k => k+1);
+                if (moves >= 19) setGameState('finished');
+            };
+
+            const handleCatMatch = (catId) => {
+                if (catId === catItem.categoryId) { setScore(s => s + 10); setFeedback('正确!'); } else { setFeedback('错误'); }
+                setMoves(m => m + 1); setCatItem(generateCatItem()); setMoveKey(k => k+1);
+                if (moves >= 19) setGameState('finished');
+            };
+
+            if (gameState === 'intro') return (
+                <div className="text-center max-w-lg mb-12 relative">
+                    <div className="w-16 h-16 text-pink-500 mx-auto mb-4"><Icons.Brain size={64}/></div>
+                    <h2 className="text-2xl font-bold mb-2">思维逻辑训练</h2>
+                    <div className="mb-6">
+                        <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">{difficulty} 难度</span>
+                        {difficulty !== 'easy' && <p className="text-red-500 text-xs mt-2 font-bold">⚠️ 限时: {getTimeLimit()/1000}s / 决策</p>}
+                    </div>
+                    <div className="flex justify-center gap-4 mb-6">
+                        <button onClick={() => setSubMode('wcst')} className={`p-4 border rounded-xl flex flex-col items-center gap-2 w-32 transition-all ${subMode === 'wcst' ? 'border-pink-500 bg-pink-50 text-pink-700 shadow-md' : 'border-gray-200 text-gray-400'}`}><Icons.Brain size={20} /><span className="font-bold">规则推理</span></button>
+                        <button onClick={() => setSubMode('category')} className={`p-4 border rounded-xl flex flex-col items-center gap-2 w-32 transition-all ${subMode === 'category' ? 'border-pink-500 bg-pink-50 text-pink-700 shadow-md' : 'border-gray-200 text-gray-400'}`}><Icons.Briefcase size={20} /><span className="font-bold">物品分类</span></button>
+                    </div>
+                    <div className="flex gap-4 justify-center">
+                        <Button variant="secondary" onClick={onExit}>退出</Button>
+                        <Button onClick={initGame}>开始</Button>
+                    </div>
+                </div>
+            );
+
+            if (gameState === 'finished') return (
+                <ResultCard score={Math.min(100, Math.round((score/200)*100))} accuracy={`${Math.round((score/200)*100)}%`} detail={subMode === 'wcst' ? "你的思维转换非常敏捷。" : "你对语义分类的处理速度很快。"} benchmarks={[{label:"S级", value:">90%"}, {label:"A级", value:">80%"}]} onRetry={() => setGameState('intro')} onHome={onExit} difficulty={difficulty} />
+            );
+
+            return (
+                <div className="flex flex-col items-center w-full max-w-lg mb-12 relative">
+                    <QuitButton onExit={onExit} />
+                    <div className="flex justify-between w-full mb-4 px-4 font-bold text-gray-600">
+                        <span>{moves}/20</span>
+                        <span className={feedback.includes('错') || feedback.includes('超') ? 'text-red-500' : 'text-green-500'}>{feedback}</span>
+                        <span>Score: {score}</span>
+                    </div>
+                    
+                    {difficulty !== 'easy' && <div className="w-full px-4 mb-4"><TimeBar key={moveKey} duration={getTimeLimit()} onTimeout={handleTimeout} isRunning={gameState === 'playing'} /></div>}
+
+                    {subMode === 'wcst' ? (
+                        <>
+                            <div className="grid grid-cols-4 gap-2 w-full mb-12">
+                                {[{c:'#EF4444',s:'●'},{c:'#3B82F6',s:'▲▲'},{c:'#22C55E',s:'■■■'},{c:'#EAB308',s:'★★★★'}].map((card, i) => (
+                                    <button key={i} onClick={() => handleWcstMatch(i)} className="aspect-[3/4] bg-white border-2 rounded-lg flex items-center justify-center text-xl shadow-sm hover:bg-gray-50" style={{color: card.c}}>{card.s}</button>
+                                ))}
+                            </div>
+                            <div className="w-32 aspect-[3/4] bg-white border-4 border-indigo-500 rounded-xl flex items-center justify-center text-4xl shadow-2xl">
+                                <div style={{color: targetCard.color}} className="flex flex-wrap justify-center w-20">
+                                {Array.from({length: targetCard.count}).map((_,i) => <span key={i}>{targetCard.shape==='circle'?'●':targetCard.shape==='square'?'■':targetCard.shape==='triangle'?'▲':'★'}</span>)}
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="grid grid-cols-3 gap-4 w-full mb-12">
+                                {categories.map((cat) => (
+                                    <button key={cat.id} onClick={() => handleCatMatch(cat.id)} className="h-32 bg-white border-2 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-pink-400 hover:bg-pink-50 transition-all shadow-sm">
+                                        <cat.icon size={32} className="text-gray-600" />
+                                        <span className="font-bold text-gray-700">{cat.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="animate-bounce-slight">
+                                <div className="w-32 h-32 bg-white border-4 border-pink-500 rounded-full flex flex-col items-center justify-center shadow-xl">
+                                    <div className="text-6xl mb-2">{catItem.char}</div>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+            );
+        };
+
+        // --- App Component ---
+        const App = () => {
+            const [activeGame, setActiveGame] = useState('menu');
+            const [difficulty, setDifficulty] = useState('medium');
+
+            const games = [
+                { id: 'schulte', title: '舒尔特方格', desc: '广度注意力 & 视觉搜索', icon: Icons.Eye, color: 'bg-indigo-500' },
+                { id: 'stroop', title: 'Stroop 训练', desc: '抑制控制 & 多任务处理', icon: Icons.Zap, color: 'bg-yellow-500' },
+                { id: 'sequence', title: '序列工作记忆', desc: '空间记忆 & 物品记忆', icon: Icons.Layers, color: 'bg-blue-500' },
+                { id: 'logic', title: '逻辑思维', desc: '规则推理 & 快速分类', icon: Icons.Brain, color: 'bg-pink-500' },
+            ];
+
+            const renderGame = () => {
+                const props = { difficulty, onComplete: () => {}, onExit: () => setActiveGame('menu') };
+                switch(activeGame) {
+                    case 'schulte': return <SchulteGame {...props} />;
+                    case 'stroop': return <StroopGame {...props} />;
+                    case 'sequence': return <SequenceGame {...props} />;
+                    case 'logic': return <LogicGame {...props} />;
+                    default: return null;
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col">
+                    <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+                        <div className="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveGame('menu')}>
+                                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
+                                    <Icons.Brain size={20} />
+                                </div>
+                                <span className="font-bold text-xl tracking-tight text-indigo-900">NeuroFocus Pro</span>
+                            </div>
+                            {activeGame === 'menu' && (
+                                <div className="flex bg-gray-100 p-1 rounded-lg">
+                                    {['easy', 'medium', 'hard'].map((d) => (
+                                        <button key={d} onClick={() => setDifficulty(d)} className={`px-3 py-1 text-sm rounded-md font-medium transition-all ${difficulty === d ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                                            {d === 'easy' ? '入门' : d === 'medium' ? '进阶' : '大师'}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </header>
+
+                    <main className="max-w-4xl mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[80vh] w-full">
+                        {activeGame === 'menu' ? (
+                            <div className="w-full animate-fade-in-up mb-16">
+                                <div className="text-center mb-10">
+                                    <h1 className="text-4xl font-extrabold text-gray-900 mb-3">NeuroFocus <span className="text-indigo-600">Prototype</span></h1>
+                                    <p className="text-lg text-gray-500 max-w-2xl mx-auto">一组用于练习反应、注意、记忆与任务切换的浏览器小游戏。</p>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {games.map((game) => (
+                                        <button key={game.id} onClick={() => setActiveGame(game.id)} className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-lg border border-gray-100 transition-all flex items-start text-left group hover:-translate-y-1">
+                                            <div className={`p-3 rounded-xl ${game.color} bg-opacity-10 mr-4 group-hover:scale-110 transition-transform`}>
+                                                <game.icon className={`w-6 h-6 ${game.color.replace('bg-', 'text-')}`} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg font-bold text-gray-800 mb-1 group-hover:text-indigo-600 transition-colors">{game.title}</h3>
+                                                <p className="text-sm text-gray-500 leading-relaxed">{game.desc}</p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="mt-8 text-center text-sm text-gray-400 flex items-center justify-center gap-2">
+                                    <Icons.Info size={14} /> 练习结果不构成医学、心理或认知能力评估
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="w-full flex flex-col items-center animate-fade-in">
+                                {renderGame()}
+                            </div>
+                        )}
+                    </main>
+                    
+                    {activeGame === 'menu' && <FactTicker />}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
